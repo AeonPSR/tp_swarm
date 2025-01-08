@@ -167,4 +167,4 @@ Cette commande donnera une autre commande qu'il faudrat utiliser sur la machine 
 `docker swarm join --token [TOKEN] [IP]`
 Après avoir ajouté le Worker à la Swarm, entrer la commande suivante sur la machine Hôte:
 `docker stack deploy -c docker-compose.yml wordpress`
-Celle-ci vas deployer la configuration de l'hôte sur les différents workers, et 
+Celle-ci vas deployer la configuration de l'hôte sur les différents workers, et démarrer le service.

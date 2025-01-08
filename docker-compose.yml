@@ -1,12 +1,10 @@
 version: '3.8'
 
 services:
-  # Database
   db:
     image: mysql:5.7
     volumes:
-      - ./data/mysql:/var/lib/mysql
-    restart: always
+      - mysql_data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: somewordpress
       MYSQL_DATABASE: wordpress
@@ -14,18 +12,17 @@ services:
       MYSQL_PASSWORD: wordpress
     networks:
       - wordpress_network
-
-  # WordPress
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+          
   wordpress:
-    depends_on:
-      - db
     image: wordpress:latest
     volumes:
-      - ./data/wordpress:/var/www/html
-      - ./config/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
-    ports:
-      - "8080:80"
-    restart: always
+      - wordpress_data:/var/www/html
     environment:
       WORDPRESS_DB_HOST: db
       WORDPRESS_DB_USER: wordpress
@@ -33,7 +30,40 @@ services:
       WORDPRESS_DB_NAME: wordpress
     networks:
       - wordpress_network
+    deploy:
+      mode: replicated
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      
+  loadbalancer:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    configs:
+      - source: nginx_config
+        target: /etc/nginx/nginx.conf
+    depends_on:
+      - wordpress
+    networks:
+      - wordpress_network
+    deploy:
+      mode: replicated
+      replicas: 2
+
+configs:
+  nginx_config:
+    file: ./nginx.conf
+
+volumes:
+  mysql_data:
+    driver: local
+  wordpress_data:
+    driver: local
 
 networks:
   wordpress_network:
-    driver: bridge
+    driver: overlay
